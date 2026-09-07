@@ -8,26 +8,39 @@ export default function TopBar({ title }) {
   const { parts, selectedPartCode, setSelectedPartCode, loading } = useParts()
 
   return (
-    <header className="h-16 shrink-0 bg-surface flex items-center justify-between px-6 gap-4">
-      <div className="shrink-0">
-        <div className="text-xs text-ink-faint mb-0.5">Predictive Failure Engine</div>
-        <h1 className="font-semibold text-lg text-ink tracking-tight">{title}</h1>
+    <header className="h-16 shrink-0 bg-surface flex items-center px-6 gap-4 overflow-hidden">
+      {/* TITLE */}
+      <div className="shrink-0 min-w-0">
+        <div className="text-xs text-ink-faint mb-0.5">
+          Predictive Failure Engine
+        </div>
+
+        <h1 className="font-semibold text-lg text-ink tracking-tight whitespace-nowrap">
+          {title}
+        </h1>
       </div>
 
-      <div className="flex-1 flex justify-center">
+      {/* VIN SEARCH */}
+      <div className="flex-1 min-w-0 flex justify-center">
         <VinSearch />
       </div>
 
+      {/* RIGHT CONTROLS */}
       <div className="flex items-center gap-3 shrink-0">
         <LastScoredBadge />
+
         <NotificationBell />
-        <span className="text-xs text-ink-faint uppercase tracking-wide font-medium">Part</span>
-        <div className="relative">
+
+        <span className="text-xs text-ink-faint uppercase tracking-wide font-medium whitespace-nowrap">
+          Part
+        </span>
+
+        <div className="relative shrink-0">
           <select
             value={selectedPartCode || ''}
             onChange={(e) => setSelectedPartCode(e.target.value)}
             disabled={loading}
-            className="appearance-none bg-surface-sunken border border-line rounded-lg pl-3.5 pr-9 py-2 text-sm font-medium text-ink focus:outline-none focus:border-brand cursor-pointer disabled:opacity-50"
+            className="appearance-none w-52 bg-surface-sunken border border-line rounded-lg pl-3.5 pr-9 py-2 text-sm font-medium text-ink focus:outline-none focus:border-brand cursor-pointer disabled:opacity-50"
           >
             {parts.map((p) => (
               <option key={p.part_code} value={p.part_code}>
@@ -35,7 +48,11 @@ export default function TopBar({ title }) {
               </option>
             ))}
           </select>
-          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none" />
+
+          <ChevronDown
+            size={14}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none"
+          />
         </div>
       </div>
     </header>
