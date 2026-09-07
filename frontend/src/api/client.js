@@ -55,6 +55,11 @@ export const getRul = (vin, partCode, method = 'point_biserial') =>
 export const runRul = (partCode, method = 'point_biserial') =>
   request('/rul/run', { method: 'POST', body: JSON.stringify({ part_code: partCode, method }) })
 
+export const searchVehicles = (q, limit = 8) =>
+  request(`/vehicles/search?q=${encodeURIComponent(q)}&limit=${limit}`)
+
+export const getMaintenanceCalendar = () => request('/maintenance/calendar')
+
 export const chatWithAgent = (message, conversationHistory) =>
   request('/agent/chat', { method: 'POST', body: JSON.stringify({ message, conversation_history: conversationHistory }) })
 export const draftOutreach = (vin, partCode) =>

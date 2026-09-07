@@ -243,11 +243,23 @@ def score_fleet_for_part(db: Session, part_code: str, method: str, as_of_date: d
     return predictions
 
 
-def score_single_vehicle(db: Session, vin: str, part_code: str, method: str) -> dict:
+def score_single_vehicle(
+    db: Session, vin: str, part_code: str, method: str,
+    stats: "PopulationStats | None" = None, intercept: float | None = None,
+) -> dict:
     """Live detail view for one VIN/part — same scoring logic as the fleet
     run, but computed on demand (not persisted) so the trend array doesn't
     need its own DB column. Used by the drill-down endpoint and, later,
-    the Insight Agent's tool calls."""
+    the Insight Agent's tool calls.
+
+    stats/intercept are optional overrides: computing them is O(fleet size)
+    (compute_population_stats alone issues one query per vehicle), so a
+    caller that needs this for MANY vehicles in a row (e.g. run_rul_for_part
+    looping over the whole fleet) should compute them ONCE and pass them in,
+    rather than letting each call recompute the same fleet-wide numbers from
+    scratch — which is what made RUL runs slow (O(n^2) queries for n
+    vehicles) before this parameter existed. Single-vehicle callers (the
+    drill-down endpoint, agent tools) can omit them and get the old behavior."""
     all_rule_rows = (
         db.query(RuleConfig)
         .filter(RuleConfig.part_code == part_code, RuleConfig.method == method)
@@ -281,8 +293,10 @@ def score_single_vehicle(db: Session, vin: str, part_code: str, method: str) -> 
             "trend": [base_rate] * TREND_WEEKS,
         }
 
-    stats = compute_population_stats(db)
-    intercept = _base_rate_intercept(db, part_code)
+    if stats is None:
+        stats = compute_population_stats(db)
+    if intercept is None:
+        intercept = _base_rate_intercept(db, part_code)
 
     current_values = {
         signal: sum(getattr(r, signal) for r in rows) / len(rows)

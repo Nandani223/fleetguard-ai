@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { RefreshCw, Download } from 'lucide-react'
 import { useParts } from '../hooks/usePartContext'
 import { listPredictions, runPredictions, getPredictionDetail } from '../api/client'
 import { pct } from '../constants'
@@ -36,7 +37,8 @@ function StatCard({ label, value, tone }) {
 }
 
 export default function FailureProbabilityPage() {
-  const { selectedPartCode, selectedPart } = useParts()
+  const { selectedPartCode, selectedPart, refreshAlerts } = useParts()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [predictions, setPredictions] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -71,12 +73,26 @@ export default function FailureProbabilityPage() {
     try {
       await runPredictions(selectedPartCode)
       load()
+      refreshAlerts()
     } catch (err) {
       setError(err.message)
     } finally {
       setRunning(false)
     }
   }
+
+  // Deep-link support: VIN Search and the notification bell both navigate
+  // here as /failure-probability?vin=XXXX. Jump straight to that vehicle's
+  // detail (independent of the current tier filter), then drop the param
+  // so it doesn't fight a later manual row click.
+  useEffect(() => {
+    const vin = searchParams.get('vin')
+    if (vin) {
+      handleSelectVin(vin)
+      setSearchParams({}, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   async function handleSelectVin(vin) {
     setSelectedVin(vin)
@@ -90,6 +106,31 @@ export default function FailureProbabilityPage() {
       setDetailLoading(false)
     }
   }
+
+  function handleExportCsv() {
+    if (!predictions || predictions.length === 0) return
+    const header = ['vin', 'part_code', 'risk_tier', 'failure_probability']
+    const rows = predictions.map((p) => [p.vin, selectedPartCode, p.risk_tier, p.failure_probability])
+    const csv = [header, ...rows].map((r) => r.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `failure-probability_${selectedPartCode}_${tier.toLowerCase()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const exportButton = (
+    <button
+      onClick={handleExportCsv}
+      disabled={!predictions || predictions.length === 0}
+      className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-line bg-surface text-ink-dim text-sm font-semibold hover:text-ink hover:bg-surface-sunken transition-colors disabled:opacity-40"
+    >
+      <Download size={14} />
+      Export CSV
+    </button>
+  )
 
   const runButton = (
     <button
@@ -133,7 +174,10 @@ export default function FailureProbabilityPage() {
                 </button>
               ))}
             </div>
-            {runButton}
+            <div className="flex items-center gap-2.5">
+              {exportButton}
+              {runButton}
+            </div>
           </div>
 
           {loading && <Loading label="Loading predictions" />}

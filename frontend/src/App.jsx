@@ -12,12 +12,16 @@ import OverviewPage from './pages/OverviewPage'
 import RuleBuilderPage from './pages/RuleBuilderPage'
 import FailureProbabilityPage from './pages/FailureProbabilityPage'
 import RULExplorerPage from './pages/RULExplorerPage'
+import MaintenanceCalendarPage from './pages/MaintenanceCalendarPage'
+import CostImpactPage from './pages/CostImpactPage'
 
 const TITLES = {
   '/': 'Overview',
   '/rule-builder': 'Rule Builder',
   '/failure-probability': 'Failure Probability',
   '/rul-explorer': 'RUL Explorer',
+  '/maintenance-calendar': 'Maintenance Calendar',
+  '/cost-impact': 'Cost Impact',
 }
 
 function UserChip() {
@@ -103,6 +107,8 @@ function Shell() {
                 <Route path="/rule-builder" element={<RuleBuilderPage />} />
                 <Route path="/failure-probability" element={<FailureProbabilityPage />} />
                 <Route path="/rul-explorer" element={<RULExplorerPage />} />
+                <Route path="/maintenance-calendar" element={<MaintenanceCalendarPage />} />
+                <Route path="/cost-impact" element={<CostImpactPage />} />
               </Routes>
             </ErrorBoundary>
           )}

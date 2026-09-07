@@ -25,7 +25,9 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.models.core import Vehicle, Part
-from app.services.scoring import score_single_vehicle, SIM_AS_OF_DATE
+from app.services.scoring import (
+    score_single_vehicle, compute_population_stats, _base_rate_intercept, SIM_AS_OF_DATE,
+)
 
 # How strongly failure probability compresses the mileage baseline.
 # remaining_km = baseline_km * max((1 - probability)^RISK_ADJUSTMENT_EXPONENT, MIN_REMAINING_FRACTION)
@@ -44,7 +46,14 @@ RISK_ADJUSTMENT_EXPONENT = 2
 MIN_REMAINING_FRACTION = 0.02
 
 
-def estimate_rul(db: Session, vin: str, part_code: str, method: str, as_of_date: date = None) -> dict:
+def estimate_rul(
+    db: Session, vin: str, part_code: str, method: str, as_of_date: date = None,
+    stats=None, intercept: float = None,
+) -> dict:
+    """stats/intercept: optional pass-through to score_single_vehicle for
+    callers scoring many vehicles in a row (see run_rul_for_part) so the
+    fleet-wide population stats get computed once instead of once per
+    vehicle."""
     as_of_date = as_of_date or SIM_AS_OF_DATE
 
     vehicle = db.query(Vehicle).filter(Vehicle.vin == vin).first()
@@ -66,7 +75,7 @@ def estimate_rul(db: Session, vin: str, part_code: str, method: str, as_of_date:
     baseline_remaining_days = (baseline_remaining_km / weekly_km_rate * 7) if weekly_km_rate > 0 else None
 
     # --- Cross-check: pull straight from the scoring engine ---
-    scoring_detail = score_single_vehicle(db, vin, part_code, method)
+    scoring_detail = score_single_vehicle(db, vin, part_code, method, stats=stats, intercept=intercept)
     probability = scoring_detail["failure_probability"]
     risk_tier = scoring_detail["risk_tier"]
 
@@ -129,10 +138,17 @@ def run_rul_for_part(db: Session, part_code: str, method: str, as_of_date: date 
     updated = 0
     rul_days_values = []
 
+    # Computed ONCE for the whole run, not once per vehicle — this is the
+    # fix for "RUL takes forever": these two calls together cost O(fleet
+    # size) queries, and estimate_rul() used to trigger them again for
+    # every single vehicle it scored, making the whole loop O(n^2).
+    stats = compute_population_stats(db)
+    intercept = _base_rate_intercept(db, part_code)
+
     for pred in predictions:
         if pred.vin not in all_vins:
             continue
-        result = estimate_rul(db, pred.vin, part_code, method, as_of_date)
+        result = estimate_rul(db, pred.vin, part_code, method, as_of_date, stats=stats, intercept=intercept)
         pred.rul_km = result["rul_km"]
         pred.rul_days = result["rul_days"]
         updated += 1

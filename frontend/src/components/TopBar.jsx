@@ -1,16 +1,26 @@
 import { ChevronDown } from 'lucide-react'
 import { useParts } from '../hooks/usePartContext'
+import VinSearch from './VinSearch'
+import NotificationBell from './NotificationBell'
+import LastScoredBadge from './LastScoredBadge'
 
 export default function TopBar({ title }) {
   const { parts, selectedPartCode, setSelectedPartCode, loading } = useParts()
 
   return (
-    <header className="h-16 shrink-0 bg-surface flex items-center justify-between px-6">
-      <div>
+    <header className="h-16 shrink-0 bg-surface flex items-center justify-between px-6 gap-4">
+      <div className="shrink-0">
         <div className="text-xs text-ink-faint mb-0.5">Predictive Failure Engine</div>
         <h1 className="font-semibold text-lg text-ink tracking-tight">{title}</h1>
       </div>
-      <div className="flex items-center gap-2.5">
+
+      <div className="flex-1 flex justify-center">
+        <VinSearch />
+      </div>
+
+      <div className="flex items-center gap-3 shrink-0">
+        <LastScoredBadge />
+        <NotificationBell />
         <span className="text-xs text-ink-faint uppercase tracking-wide font-medium">Part</span>
         <div className="relative">
           <select

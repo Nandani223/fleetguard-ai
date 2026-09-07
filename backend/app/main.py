@@ -6,6 +6,8 @@ from app.api.predictions import router as predictions_router
 from app.api.rul import router as rul_router
 from app.api.agent import router as agent_router
 from app.api.auth import router as auth_router
+from app.api.vehicles import router as vehicles_router
+from app.api.maintenance import router as maintenance_router
 
 app = FastAPI(
     title="FleetGuard AI",
@@ -28,6 +30,8 @@ app.include_router(predictions_router)
 app.include_router(rul_router)
 app.include_router(agent_router)
 app.include_router(auth_router)
+app.include_router(vehicles_router)
+app.include_router(maintenance_router)
 
 
 @app.get("/health")
