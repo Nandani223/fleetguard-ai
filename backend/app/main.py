@@ -33,13 +33,15 @@ app.include_router(auth_router)
 app.include_router(vehicles_router)
 app.include_router(maintenance_router)
 
-from pathlib import Path
-from fastapi.staticfiles import StaticFiles
-
-frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
-if frontend_dist.exists():
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+frontend_dist = Path(__file__).resolve().parent / "static"
+
+if frontend_dist.exists():
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
+
