@@ -208,6 +208,30 @@ def main():
         for o in owners:
             db.refresh(o)
 
+        # Re-link any already-seeded demo users to the fresh fleet_owner
+        # rows we just created, matching on the User.name each account was
+        # seeded with (scripts/seed_demo_users.py sets User.name to the
+        # fleet owner's name). Without this, re-running this script leaves
+        # every fleet_owner user's fleet_owner_id permanently None (nulled
+        # a few lines above, and the old FleetOwner rows they pointed at
+        # are gone) — which get_fleet_scope now treats as "no fleet
+        # assigned" and blocks with a 403, rather than the old silent
+        # "see every fleet" bug. Re-linking here means a re-run of this
+        # script doesn't break the demo accounts at all.
+        owners_by_name = {o.name: o for o in owners}
+        existing_users = db.query(User).filter(User.role == "fleet_owner").all()
+        if existing_users:
+            relinked = 0
+            for u in existing_users:
+                match = owners_by_name.get(u.name)
+                if match:
+                    u.fleet_owner_id = match.id
+                    relinked += 1
+            db.commit()
+            print(f"Re-linked {relinked}/{len(existing_users)} existing fleet_owner "
+                  f"users to their (recreated) fleet owner. Any not matched by name "
+                  f"need scripts/seed_demo_users.py re-run.")
+
         print(f"Generating {N_VEHICLES} vehicles...")
         vehicles = build_vehicles(rng, np_rng)
         for i, v in enumerate(vehicles):

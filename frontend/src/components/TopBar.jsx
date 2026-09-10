@@ -8,7 +8,7 @@ export default function TopBar({ title }) {
   const { parts, selectedPartCode, setSelectedPartCode, loading } = useParts()
 
   return (
-    <header className="h-16 shrink-0 bg-surface flex items-center px-6 gap-4 overflow-hidden">
+    <header className="h-16 shrink-0 bg-surface flex items-center px-6 gap-4 overflow-visible relative z-30">
       {/* TITLE */}
       <div className="shrink-0 min-w-0">
         <div className="text-xs text-ink-faint mb-0.5">

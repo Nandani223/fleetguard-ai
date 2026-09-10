@@ -77,7 +77,20 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
 
 def get_fleet_scope(current_user: User = Depends(get_current_user)) -> Optional[int]:
     """Returns None for admin (no filter — sees everything), or the
-    caller's fleet_owner_id to filter Vehicle queries by."""
+    caller's fleet_owner_id to filter Vehicle queries by.
+
+    Fail CLOSED, not open: a "fleet_owner" account with no fleet_owner_id
+    assigned (e.g. left stale after scripts/generate_data.py was re-run,
+    which recreates fleet_owners with new IDs and nulls every user's old
+    reference — see that script) must NOT fall through to "no filter".
+    That would silently show them every fleet's data, which is the exact
+    bug this guards against. Raise instead of returning None."""
     if current_user.role == "admin":
         return None
+    if current_user.fleet_owner_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account isn't linked to a fleet. Ask an admin to "
+                   "re-run scripts/seed_demo_users.py to fix this.",
+        )
     return current_user.fleet_owner_id

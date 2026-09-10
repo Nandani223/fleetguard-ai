@@ -68,4 +68,11 @@ USAGE_INTENSITY_MAX = 3.0
 BASE_MONTHLY_KM = 4200  # at usage_intensity == 1.0
 
 VIN_ALPHABET = "ABCDEFGHJKLMNPRSTUVWXYZ0123456789"  # excludes I, O, Q like real VINs
-FLEET_OWNERS = ['Continental Freight Co.', 'Summit Logistics Group', 'Harborline Transport']
+FLEET_OWNERS = ['Continental Freight Co.', 'Summit Logistics Group', 'Nandani AAYS']
+# Third owner is named 'Nandani AAYS' directly (rather than a generic name
+# renamed after the fact) because scripts/seed_demo_users.py looks up a
+# fleet owner with exactly that name to attach the SSO demo account to.
+# Previously this rename lived in a separate one-off script
+# (rename_owner.py) that had to be re-run by hand every time this file
+# regenerated fleet owners — skip it once and the SSO account silently
+# never gets created. Baking the name in here removes that failure mode.
