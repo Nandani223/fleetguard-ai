@@ -1,0 +1,13 @@
+command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "$DATABRICKS_APP_PORT"]
+
+env:
+  - name: "DATABASE_URL"
+    valueFrom: "fleetguard-database-url"
+  - name: "JWT_SECRET_KEY"
+    valueFrom: "fleetguard-jwt-secret"
+  - name: "AZURE_TENANT_ID"
+    valueFrom: "fleetguard-azure-tenant-id"
+  - name: "AZURE_CLIENT_ID"
+    valueFrom: "fleetguard-azure-client-id"
+  - name: "GROQ_API_KEY"
+    valueFrom: "fleetguard-groq-api-key"
