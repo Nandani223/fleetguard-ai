@@ -1,3 +1,6 @@
+import os
+print("DEBUG: DATABASE_URL in os.environ =", "DATABASE_URL" in os.environ)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
