@@ -10,7 +10,7 @@ export function setAuthToken(token) {
 
 async function request(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers }
-  if (authToken) headers['Authorization'] = `Bearer ${authToken}`
+  if (authToken) headers['X-FleetGuard-Token'] = authToken
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
   if (!res.ok) {

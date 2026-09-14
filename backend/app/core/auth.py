@@ -26,7 +26,6 @@ from app.models.user import User
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 12  # 12 hours — a demo/work-day session, not a week
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -52,25 +51,24 @@ def create_access_token(user_id: int) -> str:
     return jose_jwt.encode({"sub": str(user_id), "exp": expire}, settings.jwt_secret_key, algorithm=ALGORITHM)
 
 
+from fastapi import Header
+
 def get_current_user(
-    token: Optional[str] = Depends(oauth2_scheme),
+    x_fleetguard_token: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ) -> User:
+    token = x_fleetguard_token
     if not token:
         print("DEBUG AUTH: no token received")
         raise credentials_exception
     try:
         payload = jose_jwt.decode(token, settings.jwt_secret_key, algorithms=[ALGORITHM])
         user_id = int(payload.get("sub"))
-        print("DEBUG AUTH: decoded ok, user_id =", user_id)
-    except (JWTError, TypeError, ValueError) as e:
-        print("DEBUG AUTH: decode failed:", repr(e))
+    except (JWTError, TypeError, ValueError):
         raise credentials_exception
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        print("DEBUG AUTH: no user found in DB for id", user_id)
         raise credentials_exception
-    print("DEBUG AUTH: found user", user.email, user.role)
     return user
 
 
