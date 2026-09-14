@@ -64,56 +64,61 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 @router.post("/sso-login", response_model=TokenResponse)
 def sso_login(payload: SSOLoginRequest, db: Session = Depends(get_db)):
     """Microsoft SSO login.
- 
-    Any verified Microsoft account from @aaysinsight.com is
-    automatically created as an admin if it does not already
-    exist in the FleetGuard users table.
+
+    Any verified Microsoft account from @aaysinsight.com is always
+    treated as an admin — whether that means creating a brand-new
+    user, or correcting an existing one that was previously seeded
+    with a different role (e.g. nandanik@aaysinsight.com, which
+    scripts/seed_demo_users.py creates as fleet_owner for the
+    scoping demo).
     """
- 
+
     # 1. Verify the Microsoft ID token.
     claims = verify_oidc_token(payload.token)
- 
+
     # 2. Get the user's email from the Microsoft token.
     email = claims.get("email") or claims.get("preferred_username")
- 
+
     if not email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Microsoft token did not include an email address",
         )
- 
+
     # Normalize the email to avoid case/whitespace mismatches.
     email = email.strip().lower()
- 
+
     # 3. Check whether the user already exists.
     user = db.query(User).filter(User.email == email).first()
- 
-    # 4. If the user does not exist, automatically provision
-    #    verified AAYS Insight accounts as administrators.
-    if not user:
-        domain = email.rsplit("@", 1)[-1]
- 
-        if domain == AAYSINSIGHT_DOMAIN:
+
+    domain = email.rsplit("@", 1)[-1]
+
+    # 4. Verified AAYS Insight accounts are always admin — whether that
+    #    means creating a new user, or correcting an existing one (e.g.
+    #    one that was seeded as fleet_owner for the scoping demo).
+    if domain == AAYSINSIGHT_DOMAIN:
+        if not user:
             user = User(
                 email=email,
                 name=claims.get("name") or email,
                 role="admin",
                 fleet_owner_id=None,
             )
- 
             db.add(user)
-            db.commit()
-            db.refresh(user)
- 
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"'{email}' is not provisioned for FleetGuard AI.",
-            )
- 
+        elif user.role != "admin":
+            user.role = "admin"
+            user.fleet_owner_id = None
+        db.commit()
+        db.refresh(user)
+    elif not user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"'{email}' is not provisioned for FleetGuard AI.",
+        )
+
     # 5. Create FleetGuard's own JWT.
     token = create_access_token(user.id)
- 
+
     return TokenResponse(
         access_token=token,
         user=_to_user_out(user),
