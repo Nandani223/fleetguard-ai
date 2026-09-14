@@ -57,15 +57,20 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     if not token:
+        print("DEBUG AUTH: no token received")
         raise credentials_exception
     try:
         payload = jose_jwt.decode(token, settings.jwt_secret_key, algorithms=[ALGORITHM])
         user_id = int(payload.get("sub"))
-    except (JWTError, TypeError, ValueError):
+        print("DEBUG AUTH: decoded ok, user_id =", user_id)
+    except (JWTError, TypeError, ValueError) as e:
+        print("DEBUG AUTH: decode failed:", repr(e))
         raise credentials_exception
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
+        print("DEBUG AUTH: no user found in DB for id", user_id)
         raise credentials_exception
+    print("DEBUG AUTH: found user", user.email, user.role)
     return user
 
 
